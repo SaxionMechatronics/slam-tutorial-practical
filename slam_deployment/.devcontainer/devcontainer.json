@@ -1,0 +1,37 @@
+{
+  "name": "SLAM Container",
+  "build": {
+    "dockerfile": "../Dockerfile",   
+    "context": ".."                 
+  },
+  
+  "workspaceFolder": "/root/ws/src",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/root/ws/src,type=bind",
+  "postCreateCommand": "bash -lc 'cd /root/ws && source /opt/ros/humble/setup.bash && if [ -d src ] && [ ! -d build ]; then colcon build --symlink-install && echo \"source /root/ws/install/setup.bash\" >> /root/.bashrc; fi'",
+
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "QT_X11_NO_MITSHM": "1"         
+  },
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
+
+  "runArgs": [
+    "--gpus=all"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+
+  "initializeCommand": "bash -lc 'xhost +local:'"
+}

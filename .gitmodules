@@ -1,3 +1,6 @@
 [submodule "callibration_ros1_ws/src/kalibr"]
 	path = callibration_ros1_ws/src/kalibr
 	url = https://github.com/ethz-asl/kalibr.git
+[submodule "slam_deployment/VINS-Fusion-ROS2"]
+	path = slam_deployment/VINS-Fusion-ROS2
+	url = https://github.com/SaxionMechatronics/VINS-Fusion-ROS2

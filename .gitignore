@@ -2,6 +2,9 @@
 node_modules/
 vendor/
 
+# Ignore large data
+slam_deployment/data
+
 # Ignore build artifacts
 dist/
 build/
