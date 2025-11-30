@@ -1,10 +1,10 @@
-# ROS 2 Humble + VINS-Fusion-ROS2 + Ceres
 FROM osrf/ros:humble-desktop
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 SHELL ["/bin/bash", "-c"]
 
+## Setting up for vins
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -39,14 +39,33 @@ RUN wget http://ceres-solver.org/ceres-solver-2.1.0.tar.gz && \
     rm /root/sources/ceres-solver-2.1.0.tar.gz
 
 
-# RUN mkdir -p /root/vins_ws/src
-# WORKDIR /root/vins_ws/src
-# RUN git clone https://github.com/SaxionMechatronics/VINS-Fusion-ROS2
-
-# WORKDIR /root/vins_ws
-# RUN source /opt/ros/humble/setup.bash && \
-#     colcon build --symlink-install
-
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc 
+
+
+## Setting up for fastlio
+RUN apt-get update && apt-get install -y --no-install-recommends ros-humble-pcl-ros; 
+
+RUN mkdir -p /root/sources/ros_ws/src
+WORKDIR /root/sources/ros_ws/src
+RUN git clone https://github.com/Ericsii/livox_ros_driver2.git
+WORKDIR /root/sources/ros_ws
+RUN source /opt/ros/humble/setup.bash && \
+    colcon build --symlink-install
+
+RUN echo "source /root/sources/ros_ws/install/setup.bash" >> /root/.bashrc 
+
+## Setting up for lego-loam
+RUN apt-get install -y --no-install-recommends unzip; 
+WORKDIR /root/sources
+RUN wget -O gtsam.zip https://github.com/borglab/gtsam/archive/refs/tags/4.1.1.zip && \
+    unzip gtsam.zip && \
+    rm -rf gtsam.zip && 
+RUN mkdir -p gtsam-4.1.1/build && \
+    cd gtsam-4.1.1/build && \
+    cmake -DGTSAM_USE_SYSTEM_EIGEN=ON .. && \
+    make -j"$(nproc)" && \
+    make install && \
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/local.conf && \
+    ldconfig
 
 CMD ["bash"]

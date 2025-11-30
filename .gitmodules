@@ -4,3 +4,9 @@
 [submodule "slam_deployment/VINS-Fusion-ROS2"]
 	path = slam_deployment/VINS-Fusion-ROS2
 	url = https://github.com/SaxionMechatronics/VINS-Fusion-ROS2
+[submodule "slam_deployment/FAST_LIO_ROS2"]
+	path = slam_deployment/FAST_LIO_ROS2
+	url = https://github.com/SaxionMechatronics/FAST_LIO_ROS2.git
+[submodule "slam_deployment/LeGO-LOAM-ROS2"]
+	path = slam_deployment/LeGO-LOAM-ROS2
+	url = https://github.com/SaxionMechatronics/LeGO-LOAM-ROS2.git
