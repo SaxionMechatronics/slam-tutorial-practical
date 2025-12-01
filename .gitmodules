@@ -1,5 +1,5 @@
-[submodule "callibration_ros1_ws/src/kalibr"]
-	path = callibration_ros1_ws/src/kalibr
+[submodule "callibration/camera_imu_cal_ws/src/kalibr"]
+	path = callibration/camera_imu_cal_ws/src/kalibr
 	url = https://github.com/ethz-asl/kalibr.git
 [submodule "slam_deployment/VINS-Fusion-ROS2"]
 	path = slam_deployment/VINS-Fusion-ROS2
@@ -10,3 +10,6 @@
 [submodule "slam_deployment/LeGO-LOAM-ROS2"]
 	path = slam_deployment/LeGO-LOAM-ROS2
 	url = https://github.com/SaxionMechatronics/LeGO-LOAM-ROS2.git
+[submodule "callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init"]
+	path = callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init
+	url = git@github.com:hku-mars/LiDAR_IMU_Init.git

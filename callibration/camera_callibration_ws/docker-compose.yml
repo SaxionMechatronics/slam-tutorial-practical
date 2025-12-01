@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  callibration:
+    build: .
+    container_name: camera-callibration
+    privileged: true
+    network_mode: host
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    devices:
+      - /dev:/dev
+    volumes:
+      # Host ROS2 workspace
+      - ./src:/home/rosuser/callibration_ws/src
+      - ./resources:/home/rosuser/callibration_ws/resources
+      - $SSH_AUTH_SOCK:/ssh-agent  resources
+      # Display (GUI)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp:/tmp
+    shm_size: "2g"
+    command: bash
+    tty: true
