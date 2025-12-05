@@ -1,0 +1,14 @@
+imu0:
+  T_i_b:
+  - [1.0, 0.0, 0.0, 0.0]
+  - [0.0, 1.0, 0.0, 0.0]
+  - [0.0, 0.0, 1.0, 0.0]
+  - [0.0, 0.0, 0.0, 1.0]
+  accelerometer_noise_density: 0.007
+  accelerometer_random_walk: 0.0008
+  gyroscope_noise_density: 0.00043563416
+  gyroscope_random_walk: 0.007400195811015464
+  model: calibrated
+  rostopic: /zed/zed_node/imu/data_raw
+  time_offset: 0.0
+  update_rate: 100.0
