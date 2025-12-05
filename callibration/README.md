@@ -54,6 +54,38 @@ colcon build
 ```
 cd slam-tutorial-practical/camera_imu_cal_ws
 docker compose exec callibration bash --login
-source /opt/ros/humble/setup.bash
-colcon build 
+source /opt/ros/noetic/setup.bash
+catkin build 
+source devel/setup.bash
+```
+
+## Build Lidar-Imu callibration 
+```
+cd slam-tutorial-practical/Lidar_imu_cal_ws
+docker compose exec callibration bash --login
+catkin_make
+source devel/setup.bash
+```
+
+
+## RVIZ
+Allow containers to use the display:
+```
+xhost +local:docker
+```
+## Open different terminals in docker container
+
+If you want to use another terminal in the same docker container, you can do it in different ways:
+
+1. The simples way is to open different terminals in the host computer in the same docker compose project:
+```
+cd slam-tutorial-practical/callibration/camera_imu_cal_ws
+docker compose exec callibration bash --login
+```
+Doing this way, you will open a new terminal in the same docker container named "callibration" defined in the docker-compose.yml file.
+
+2. Install terminal multiplexer like tmux or screen in the docker container and use it to create multiple terminal sessions inside the same docker container.
+```
+sudo apt-get install tmux
+tmux new -s my_session
 ```
