@@ -59,7 +59,7 @@ RUN apt-get install -y --no-install-recommends unzip;
 WORKDIR /root/sources
 RUN wget -O gtsam.zip https://github.com/borglab/gtsam/archive/refs/tags/4.1.1.zip && \
     unzip gtsam.zip && \
-    rm -rf gtsam.zip && 
+    rm -rf gtsam.zip 
 RUN mkdir -p gtsam-4.1.1/build && \
     cd gtsam-4.1.1/build && \
     cmake -DGTSAM_USE_SYSTEM_EIGEN=ON .. && \
@@ -67,5 +67,13 @@ RUN mkdir -p gtsam-4.1.1/build && \
     make install && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/local.conf && \
     ldconfig
+
+
+## Setting up for EVO
+COPY requirements.txt . 
+RUN apt-get install -y --no-install-recommends python3-pip; 
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+RUN evo_config set plot_backend Agg
 
 CMD ["bash"]
