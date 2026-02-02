@@ -12,4 +12,4 @@
 	url = https://github.com/SaxionMechatronics/LeGO-LOAM-ROS2.git
 [submodule "callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init"]
 	path = callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init
-	url = git@github.com:hku-mars/LiDAR_IMU_Init.git
+	url = https://github.com/hku-mars/LiDAR_IMU_Init.git
