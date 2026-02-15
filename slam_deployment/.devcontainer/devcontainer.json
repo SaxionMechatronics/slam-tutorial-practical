@@ -17,9 +17,9 @@
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
   ],
 
-  "runArgs": [
-    "--gpus=all"
-  ],
+  // "runArgs": [
+  //   "--gpus=all"
+  // ],
 
   "customizations": {
     "vscode": {
