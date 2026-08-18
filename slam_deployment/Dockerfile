@@ -69,9 +69,23 @@ RUN mkdir -p gtsam-4.1.1/build && \
     ldconfig
 
 
+## Setting up for fast_LIMO
+# Header-only IKFoM + Eigen3 (already installed above); PCL >= 1.12 and the ROS
+# message/tf packages the wrapper links against are pulled in explicitly here.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpcl-dev \
+    ros-humble-pcl-conversions \
+    ros-humble-tf2 \
+    ros-humble-tf2-ros \
+    ros-humble-nav-msgs \
+    ros-humble-visualization-msgs \
+ && rm -rf /var/lib/apt/lists/*
+
+
 ## Setting up for EVO
-COPY requirements.txt . 
-RUN apt-get install -y --no-install-recommends python3-pip; 
+COPY requirements.txt .
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pip \
+ && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 RUN evo_config set plot_backend Agg
