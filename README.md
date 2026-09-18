@@ -7,7 +7,7 @@
 A hands-on deployment workspace for running and comparing LiDAR-Inertial and Visual-Inertial SLAM packages on **ROS 2 Humble**, packaged in a reproducible Docker environment. Everything the algorithms need ROS 2, Ceres, GTSAM, PCL, the Livox driver and the [EVO](https://github.com/MichaelGrupp/evo) evaluation
 toolkit is baked into a single image, so no SLAM dependencies have to be installed on the host.
 
-This README currently documents the **[Fast-LIMO](https://github.com/fetty31/fast_LIMO)** (Fast LiDAR-Inertial Mapping & Odometry) pipeline. The other packages bundled in this repository are listed under [Included packages](#included-packages) and will be documented later.
+This README documents how to build and run each of the bundled pipelines, one section per package: **[Fast-LIMO](https://github.com/fetty31/fast_LIMO)**, **[FAST-LIO](https://github.com/hku-mars/FAST_LIO)**, **[LeGO-LOAM](https://github.com/RobustFieldAutonomyLab/LeGO-LOAM)** and **[VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)**. See [Included packages](#included-packages).
 
 ## Table of Contents
 
@@ -19,11 +19,14 @@ This README currently documents the **[Fast-LIMO](https://github.com/fetty31/fas
 - [Using the Docker container](#using-the-docker-container)
   - [Option A : VS Code Dev Container](#option-a--vs-code-dev-container)
   - [Option B : Plain Docker CLI](#option-b--plain-docker-cli)
+- [Providing a rosbag](#providing-a-rosbag)
 - [Running Fast-LIMO](#running-fast-limo)
-  - [Configuration](#configuration)
   - [Launch](#launch)
   - [Playing a rosbag](#playing-a-rosbag)
   - [Host ↔ container communication](#host--container-communication)
+- [Running FAST-LIO](#running-fast-lio)
+- [Running LeGO-LOAM](#running-lego-loam)
+- [Running VINS-Fusion](#running-vins-fusion)
 - [Troubleshooting](#troubleshooting)
 
 ## About
@@ -39,12 +42,12 @@ The pattern is deliberate:
 
 ## Included packages
 
-| Package | Type | Documented here |
-|---|---|---|
-| **fast_LIMO** | LiDAR-Inertial Odometry & Mapping | Yes |
-| FAST_LIO_ROS2 | LiDAR-Inertial Odometry | No |
-| LeGO-LOAM-ROS2 | LiDAR Odometry & Mapping | No |
-| VINS-Fusion-ROS2 | Visual-Inertial Odometry | No |
+| Package | Type | ROS 2 package(s) | Run instructions |
+|---|---|---|---|
+| **fast_LIMO** | LiDAR-Inertial Odometry & Mapping | `fast_limo` | [Running Fast-LIMO](#running-fast-limo) |
+| **FAST_LIO_ROS2** | LiDAR-Inertial Odometry | `fast_lio` | [Running FAST-LIO](#running-fast-lio) |
+| **LeGO-LOAM-ROS2** | LiDAR Odometry & Mapping | `lego_loam_sr` | [Running LeGO-LOAM](#running-lego-loam) |
+| **VINS-Fusion-ROS2** | Visual-Inertial Odometry | `vins`, `loop_fusion`, `global_fusion`, `camera_models` | [Running VINS-Fusion](#running-vins-fusion) |
 
 ### Repository layout
 
@@ -78,7 +81,7 @@ Installed on the **host** machine:
 #### 1. Clone the repository
 
 `git clone` creates the project folder for you; just run it from wherever you
-keep your projects (e.g. `~/Documents`):
+keep your projects:
 
 ```bash
 git clone https://github.com/SaxionMechatronics/slam-tutorial-practical
@@ -87,11 +90,36 @@ cd slam-tutorial-practical
 
 #### 2. Initialise the submodules
 
-The SLAM packages are git submodules, so they must be fetched **on the host**
+The SLAM packages are git submodules, so they must be fetched **on the host**.
 
 ```bash
+# To fetch all of them
 git submodule update --init --recursive
 ```
+
+**Fetch only the package(s) you need.** `git submodule update --init` accepts explicit submodule paths, so you can pull just one algorithm and leave the rest as empty folders:
+
+```bash
+# only Fast-LIMO
+git submodule update --init --recursive slam_deployment/fast_LIMO
+
+# only FAST-LIO
+git submodule update --init --recursive slam_deployment/FAST_LIO_ROS2
+
+# a subset : list several paths
+git submodule update --init --recursive slam_deployment/fast_LIMO slam_deployment/VINS-Fusion-ROS2
+```
+
+The submodule paths are:
+
+| Package | Submodule path |
+|---|---|
+| fast_LIMO | `slam_deployment/fast_LIMO` |
+| FAST_LIO_ROS2 | `slam_deployment/FAST_LIO_ROS2` |
+| LeGO-LOAM-ROS2 | `slam_deployment/LeGO-LOAM-ROS2` |
+| VINS-Fusion-ROS2 | `slam_deployment/VINS-Fusion-ROS2` |
+
+> `--recursive` also pulls any nested submodules the package itself declares. Run `git submodule status` to see which are initialised (a leading `-` means not yet fetched). Only the packages present under `slam_deployment/` are built inside the container, so fetching a subset keeps the `colcon build` shorter.
 
 ### 3. Build the Docker image
 
@@ -133,6 +161,7 @@ docker run -it --rm \
   --env QT_X11_NO_MITSHM=1 \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
   --volume "$PWD":/root/ws/src \
+  --volume "$HOME/rosbags":/root/bags \
   slam-tutorial
 ```
 
@@ -147,14 +176,25 @@ source install/setup.bash
 
 > Add `--gpus all` to the `docker run` command if you have the NVIDIA Container
 > Toolkit installed and want GPU access.
-
 > **Container naming:** `--name slam_deployment` gives the container a stable name,
-> so you can always attach with `docker exec -it slam_deployment bash` instead of
+> so you can always attach with `docker exec -it slam_deployment /bin/bash` instead of
 > looking up a random name. Do **not** add `--hostname` together with `--net=host`:
 > the custom hostname is not in the container's `/etc/hosts`, which breaks ROS 2
 > (DDS) discovery. See [Troubleshooting](#troubleshooting).
 
+## Providing a rosbag
+
+Every pipeline below needs recorded data. A bag path (the `bag_folder:=` argument, or the bag you play by hand for Fast-LIMO) is a path **inside the container**, but your bags normally live on the host. You do **not** need to copy them into `slam_deployment/`, instead **bind-mount** your host bag folder into the container, exactly like the source code is mounted. The bag stays on the host and simply appears at a container path.
+
+Both entry points already mount the host's `~/rosbags` folder to `/root/bags` inside the container. So a bag at `~/rosbags/my_dataset` on the host is reachable as `/root/bags/my_dataset`.
+
+> Edit the source path (`~/rosbags`) in either place if your bags live elsewhere. The mounted folder must exist on the host before the container starts, otherwise the bind mount fails or creates an empty directory. As an alternative, anything under `slam_deployment/data/` on the host also appears at `/root/ws/src/data/` inside the container (already git-ignored), but a dedicated mount keeps large bags out of the workspace.
+
+> **Building a single package.** The whole workspace is built by `colcon build --symlink-install` in `/root/ws` (the Dev Container does this automatically). To (re)build just one algorithm, use `--packages-select`, e.g. `colcon build --symlink-install --packages-select fast_lio`, then re-source `source /root/ws/install/setup.bash`.
+
 ## Running Fast-LIMO
+
+> **Upstream project:** [fetty31/fast_LIMO](https://github.com/fetty31/fast_LIMO) algorithm details, full parameter reference and datasets.
 
 The steps below are run **inside the container**, with the workspace already built and sourced (`source /root/ws/install/setup.bash`).
 
@@ -194,6 +234,57 @@ Two things must match on both sides for discovery to work:
 
 - **`ROS_DOMAIN_ID`** : nodes only find peers on the same domain (default `0`).
 - **`ROS_LOCALHOST_ONLY`** : keep it consistent; unset it on both sides if discovery misbehaves.
+
+## Running FAST-LIO
+
+> **Upstream project:** [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO) algorithm details, full parameter reference and datasets.
+
+Package `fast_lio`. Sensor configs live in `FAST_LIO_ROS2/config/` : `avia.yaml`, `horizon.yaml`, `mid360.yaml`, `ouster64.yaml`, `ouster128.yaml`, `velodyne.yaml`. Pick the one for your LiDAR and edit its `lid_topic` / `imu_topic` to match your data.
+
+```bash
+# live : subscribe to a running sensor or an externally played bag (RViz on by default)
+ros2 launch fast_lio mapping_rviz.launch.py config_file:=ouster64.yaml
+
+# bag : launch the node and play a bag together
+ros2 launch fast_lio mapping_bag.launch.py \
+  bag_folder:=/root/bags/<your_bag> \
+  config_file:=ouster64.yaml \
+  use_sim_time:=true
+```
+
+> `config_file` defaults to `ouster128.yaml`; `rviz:=false` disables the RViz window.
+
+## Running LeGO-LOAM
+
+> **Upstream project:** [RobustFieldAutonomyLab/LeGO-LOAM](https://github.com/RobustFieldAutonomyLab/LeGO-LOAM) algorithm details and the original paper.
+
+Package `lego_loam_sr`. The launch file sets up the required TF tree, opens RViz, and **plays the bag itself**, so `bag_folder` is mandatory. Its input point cloud is remapped from `/rslidar_points` to `/ouster/points` (edit the `remappings` in `run.launch.py` for a different topic).
+
+```bash
+ros2 launch lego_loam_sr run.launch.py bag_folder:=/root/bags/<your_bag>
+```
+
+> `config_file` defaults to `loam_config_corridor.yaml` (also available: `loam_config.yaml`), override with `config_file:=<path>`. Play **only** the LiDAR topic from your bag, replaying the bag's `/tf` interferes with LeGO-LOAM's own transforms.
+
+## Running VINS-Fusion
+
+> **Upstream project:** [HKUST-Aerial-Robotics/VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion) algorithm details, supported sensors and datasets.
+
+Packages `vins`, `loop_fusion`, `global_fusion`, `camera_models`. Camera/IMU configs live in `VINS-Fusion-ROS2/config/` (e.g. `euroc/`, `kitti_odom/`, `kitti_raw/`, `realsense_d435i/`, `mynteye/`). Both launch files take a `config:=` (full path to the config YAML) and a `bag_folder:=` argument, and play the bag themselves.
+
+```bash
+# VIO + RViz
+ros2 launch vins vins_rviz.launch.py \
+  config:=/root/ws/src/VINS-Fusion-ROS2/config/euroc/euroc_stereo_imu_config.yaml \
+  bag_folder:=/root/bags/<your_bag>
+
+# VIO + loop closure (adds the loop_fusion node) + RViz
+ros2 launch vins vins_lc_rviz.launch.py \
+  config:=/root/ws/src/VINS-Fusion-ROS2/config/euroc/euroc_stereo_imu_config.yaml \
+  bag_folder:=/root/bags/<your_bag>
+```
+
+> To run the estimator by itself without a bag, use the node directly : `ros2 run vins vins_node <path_to_config.yaml>`. GPU acceleration can be toggled inside the chosen config file.
 
 ## Troubleshooting
 
