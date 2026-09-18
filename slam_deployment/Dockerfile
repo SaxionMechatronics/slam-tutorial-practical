@@ -45,14 +45,14 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
 ## Setting up for fastlio
 RUN apt-get update && apt-get install -y --no-install-recommends ros-humble-pcl-ros; 
 
-RUN mkdir -p /root/sources/ros_ws/src
-WORKDIR /root/sources/ros_ws/src
+RUN mkdir -p /root/sources/livox_driver_ws/src
+WORKDIR /root/sources/livox_driver_ws/src
 RUN git clone https://github.com/Ericsii/livox_ros_driver2.git
-WORKDIR /root/sources/ros_ws
+WORKDIR /root/sources/livox_driver_ws
 RUN source /opt/ros/humble/setup.bash && \
     colcon build --symlink-install
 
-RUN echo "source /root/sources/ros_ws/install/setup.bash" >> /root/.bashrc 
+RUN echo "source /root/sources/livox_driver_ws/install/setup.bash" >> /root/.bashrc
 
 ## Setting up for lego-loam
 RUN apt-get install -y --no-install-recommends unzip; 
@@ -79,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-tf2-ros \
     ros-humble-nav-msgs \
     ros-humble-visualization-msgs \
+    ros-humble-rmw-zenoh-cpp \
  && rm -rf /var/lib/apt/lists/*
 
 
