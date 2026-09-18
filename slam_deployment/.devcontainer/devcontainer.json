@@ -14,16 +14,18 @@
     "QT_X11_NO_MITSHM": "1"         
   },
   "mounts": [
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+    // host rosbag folder -> /root/bags in the container (edit the source path to yours)
+    "source=${localEnv:HOME}/rosbags,target=/root/bags,type=bind"
   ],
 
   "runArgs": [
     "--name=slam_deployment",   // stable container name (docker ps / docker exec)
-    "--net=host",                // share host network so ROS 2 (DDS) discovers host nodes / rosbag
+    "--net=host"                 // share host network so ROS 2 (DDS) discovers host nodes / rosbag
     // NOTE: do NOT set --hostname together with --net=host. The custom name is not
     // in /etc/hosts (host networking supplies the host's hosts file), so DDS can't
     // resolve it and ROS 2 discovery silently returns nothing.
-    "--gpus=all"             // comment if you don't have the NVIDIA Container Toolkit
+    // "--gpus=all"             // uncomment ONLY if you have an NVIDIA GPU + Container Toolkit
   ],
 
   "customizations": {
