@@ -20,7 +20,8 @@ config.json
 
 .vscode/
 
-# 
+#
+callibration_ros1_ws/* 
 callibration_ros1_ws/resources/*
 !callibration_ros1_ws/resources/.gitkeep
 
