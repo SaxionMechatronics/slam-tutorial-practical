@@ -13,3 +13,7 @@
 [submodule "callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init"]
 	path = callibration/Lidar_imu_cal_ws/src/LiDAR_IMU_Init
 	url = https://github.com/hku-mars/LiDAR_IMU_Init.git
+[submodule "slam_deployment/fast_LIMO"]
+	path = slam_deployment/fast_LIMO
+	url = https://github.com/SaxionMechatronics/fast_LIMO.git
+	branch = ros2-humble
