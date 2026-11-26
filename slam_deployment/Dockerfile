@@ -29,7 +29,9 @@ RUN mkdir -p /root/sources
 
 
 WORKDIR /root/sources
-RUN wget http://ceres-solver.org/ceres-solver-2.1.0.tar.gz && \
+# ceres-solver.org no longer hosts the 2.1.0 tarball; the GitHub tag archive
+# unpacks to the same ceres-solver-2.1.0/ folder.
+RUN wget -O ceres-solver-2.1.0.tar.gz https://github.com/ceres-solver/ceres-solver/archive/refs/tags/2.1.0.tar.gz && \
     tar zxf ceres-solver-2.1.0.tar.gz && \
     mkdir -p ceres-solver-2.1.0/build && \
     cd ceres-solver-2.1.0/build && \
@@ -80,6 +82,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-nav-msgs \
     ros-humble-visualization-msgs \
     ros-humble-rmw-zenoh-cpp \
+ && rm -rf /var/lib/apt/lists/*
+
+
+## Rosbag support: SQLite (.db3) ships with ROS 2; add the MCAP (.mcap) storage plugin.
+## The GNSS message packages let `ros2 bag play` publish the bag's u-blox topics
+## (NavPVT, NavRELPOSNED9, NMEA sentences, RTCM corrections) instead of skipping them.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-rosbag2-storage-mcap \
+    ros-humble-ublox-msgs \
+    ros-humble-nmea-msgs \
+    ros-humble-rtcm-msgs \
  && rm -rf /var/lib/apt/lists/*
 
 
