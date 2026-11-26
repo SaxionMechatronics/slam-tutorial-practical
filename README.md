@@ -1,13 +1,10 @@
 # SLAM Tutorial
 
-![ROS 2 Humble](https://img.shields.io/badge/ROS%202-Humble-22314E?logo=ros&logoColor=white)
-![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+![ROS 2 Humble](https://img.shields.io/badge/ROS%202-Humble-22314E?logo=ros&logoColor=white) ![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-A hands-on deployment workspace for running and comparing LiDAR-Inertial and Visual-Inertial SLAM packages on **ROS 2 Humble**, packaged in a reproducible Docker environment. Everything the algorithms need ROS 2, Ceres, GTSAM, PCL, the Livox driver and the [EVO](https://github.com/MichaelGrupp/evo) evaluation
-toolkit is baked into a single image, so no SLAM dependencies have to be installed on the host.
+A hands-on deployment workspace for running and comparing LiDAR-Inertial and Visual-Inertial SLAM packages on **ROS 2 Humble**, packaged in a reproducible Docker environment. Everything the algorithms need (ROS 2, Ceres, GTSAM, PCL, the Livox driver and the [EVO](https://github.com/MichaelGrupp/evo) evaluation toolkit) is baked into a single image, so no SLAM dependencies have to be installed on the host.
 
-This README documents how to build and run each of the bundled pipelines, one section per package: **[Fast-LIMO](https://github.com/fetty31/fast_LIMO)**, **[FAST-LIO](https://github.com/hku-mars/FAST_LIO)**, **[LeGO-LOAM](https://github.com/RobustFieldAutonomyLab/LeGO-LOAM)** and **[VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)**. See [Included packages](#included-packages).
+The README documents how to build and run each of the bundled pipelines, one section per package: **[Fast-LIMO](https://github.com/fetty31/fast_LIMO)**, **[FAST-LIO](https://github.com/hku-mars/FAST_LIO)**, **[LeGO-LOAM](https://github.com/RobustFieldAutonomyLab/LeGO-LOAM)** and **[VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)**.
 
 ## Table of Contents
 
@@ -15,18 +12,22 @@ This README documents how to build and run each of the bundled pipelines, one se
 - [Included packages](#included-packages)
   - [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
-- [Clone & build](#clone--build)
-- [Using the Docker container](#using-the-docker-container)
-  - [Option A : VS Code Dev Container](#option-a--vs-code-dev-container)
-  - [Option B : Plain Docker CLI](#option-b--plain-docker-cli)
-- [Providing a rosbag](#providing-a-rosbag)
-- [Running Fast-LIMO](#running-fast-limo)
-  - [Launch](#launch)
-  - [Playing a rosbag](#playing-a-rosbag)
-  - [Host ↔ container communication](#host--container-communication)
-- [Running FAST-LIO](#running-fast-lio)
-- [Running LeGO-LOAM](#running-lego-loam)
-- [Running VINS-Fusion](#running-vins-fusion)
+- [Clone the repository](#1-clone-the-repository)
+- [Build the Docker image](#2-build-the-docker-image)
+- [Start the container](#3-start-the-container)
+  - [Opening more terminals](#opening-more-terminals)
+  - [Alternative: VS Code Dev Container](#alternative-vs-code-dev-container)
+- [Build the SLAM packages](#4-build-the-slam-packages)
+- [Launch the sensors or play a rosbag](#5-launch-the-sensors-or-play-a-rosbag)
+  - [Option A: Live sensors](#option-a-live-sensors)
+  - [Option B: Play a rosbag](#option-b-play-a-rosbag)
+  - [Zenoh-recorded rosbags (rmw_zenoh)](#zenoh-recorded-rosbags-rmw_zenoh)
+- [Run a SLAM package](#6-run-a-slam-package)
+  - [Fast-LIMO](#fast-limo)
+  - [FAST-LIO](#fast-lio)
+  - [LeGO-LOAM](#lego-loam)
+  - [VINS-Fusion](#vins-fusion)
+- [Host ↔ container communication](#host--container-communication)
 - [Troubleshooting](#troubleshooting)
 
 ## About
@@ -44,16 +45,19 @@ The pattern is deliberate:
 
 | Package | Type | ROS 2 package(s) | Run instructions |
 |---|---|---|---|
-| **fast_LIMO** | LiDAR-Inertial Odometry & Mapping | `fast_limo` | [Running Fast-LIMO](#running-fast-limo) |
-| **FAST_LIO_ROS2** | LiDAR-Inertial Odometry | `fast_lio` | [Running FAST-LIO](#running-fast-lio) |
-| **LeGO-LOAM-ROS2** | LiDAR Odometry & Mapping | `lego_loam_sr` | [Running LeGO-LOAM](#running-lego-loam) |
-| **VINS-Fusion-ROS2** | Visual-Inertial Odometry | `vins`, `loop_fusion`, `global_fusion`, `camera_models` | [Running VINS-Fusion](#running-vins-fusion) |
+| **fast_LIMO** | LiDAR-Inertial Odometry & Mapping | `fast_limo` | [Fast-LIMO](#fast-limo) |
+| **FAST_LIO_ROS2** | LiDAR-Inertial Odometry | `fast_lio` | [FAST-LIO](#fast-lio) |
+| **LeGO-LOAM-ROS2** | LiDAR Odometry & Mapping | `lego_loam_sr` | [LeGO-LOAM](#lego-loam) |
+| **VINS-Fusion-ROS2** | Visual-Inertial Odometry | `vins`, `loop_fusion`, `global_fusion`, `camera_models` | [VINS-Fusion](#vins-fusion) |
 
 ### Repository layout
 
 ```
 slam-tutorial-practical/
 ├── slam_deployment/
+│   ├── build_docker.sh       # builds the Docker image
+│   ├── start.sh              # starts the container (first terminal)
+│   ├── attach.sh             # opens another terminal in the running container
 │   ├── Dockerfile            # ROS 2 Humble + all SLAM dependencies + EVO
 │   ├── requirements.txt      # Python deps for EVO (trajectory evaluation)
 │   ├── .devcontainer/        # VS Code Dev Container definition
@@ -74,26 +78,20 @@ Installed on the **host** machine:
 
 - An X server for GUI tools such as RViz (already present on most Linux desktops)
 
->You do **not** need to install ROS 2 or any SLAM dependency on the host those live inside the image.
+>You do **not** need to install ROS 2 or any SLAM dependency on the host, those live inside the image.
 
-## Clone & build
+## 1. Clone the repository
 
-#### 1. Clone the repository
-
-`git clone` creates the project folder for you; just run it from wherever you
-keep your projects:
+Clone the projects. `--recursive` also fetches the SLAM packages, which are git submodules:
 
 ```bash
-git clone https://github.com/SaxionMechatronics/slam-tutorial-practical
+git clone --recursive https://github.com/SaxionMechatronics/slam-tutorial-practical
 cd slam-tutorial-practical
 ```
 
-#### 2. Initialise the submodules
-
-The SLAM packages are git submodules, so they must be fetched **on the host**.
+If you already cloned without `--recursive`, fetch the submodules afterwards (on the **host**):
 
 ```bash
-# To fetch all of them
 git submodule update --init --recursive
 ```
 
@@ -103,14 +101,9 @@ git submodule update --init --recursive
 # only Fast-LIMO
 git submodule update --init --recursive slam_deployment/fast_LIMO
 
-# only FAST-LIO
-git submodule update --init --recursive slam_deployment/FAST_LIO_ROS2
-
 # a subset : list several paths
 git submodule update --init --recursive slam_deployment/fast_LIMO slam_deployment/VINS-Fusion-ROS2
 ```
-
-The submodule paths are:
 
 | Package | Submodule path |
 |---|---|
@@ -119,123 +112,176 @@ The submodule paths are:
 | LeGO-LOAM-ROS2 | `slam_deployment/LeGO-LOAM-ROS2` |
 | VINS-Fusion-ROS2 | `slam_deployment/VINS-Fusion-ROS2` |
 
-> `--recursive` also pulls any nested submodules the package itself declares. Run `git submodule status` to see which are initialised (a leading `-` means not yet fetched). Only the packages present under `slam_deployment/` are built inside the container, so fetching a subset keeps the `colcon build` shorter.
+> Run `git submodule status` to see which are initialised.
 
-### 3. Build the Docker image
+---
+## 2. Build the Docker image
+
+From the repository root:
 
 ```bash
-cd slam_deployment
-docker build -t slam-tutorial .
+./slam_deployment/build_docker.sh
 ```
+
+This builds the image `slam-tutorial` from `slam_deployment/Dockerfile`. Extra arguments are passed to `docker build`, e.g. `./slam_deployment/build_docker.sh --no-cache` for a clean rebuild.
 
 >The first build takes a while (it compiles Ceres and GTSAM from source). Later builds are cached.
 
-# Using the Docker container
+---
+## 3. Start the container
 
-There are two supported ways to get a shell inside the environment. Both mount
-the `slam_deployment` folder to `/root/ws/src` inside the container.
+```bash
+./slam_deployment/start.sh
+```
 
-### Option A : VS Code Dev Container
+This is your **first terminal**, and it is now a shell inside the container at `/root/ws`. The script:
 
-The repository ships a Dev Container definition under `slam_deployment/.devcontainer/`.
+- allows the container to open GUI windows (`xhost +local:`), for RViz;
+- mounts `slam_deployment/` at `/root/ws/src`, so code edits on the host show up immediately;
+- mounts the host's `~/rosbags` folder at `/root/bags` (created if missing);
+- runs with `--net=host` and `--ipc=host`, so ROS 2 nodes on the host and in the container see each other;
+- keeps `build/`, `install/` and `log/` in Docker volumes, so you only build the packages once, not on every start;
+- names the container `slam_deployment`.
+
+| Option / variable | Effect |
+|---|---|
+| `--gpu` | pass the NVIDIA GPU through (needs the NVIDIA Container Toolkit) |
+| `BAG_DIR=/path/to/bags` | mount a different host bag folder at `/root/bags` |
+| `ROS_DOMAIN_ID=<n>` | forwarded into the container if set on the host |
+
+```bash
+# example: GPU on, bags from an external drive
+BAG_DIR=/media/$USER/data/rosbags ./slam_deployment/start.sh --gpu
+```
+
+The container is removed when you exit this first terminal (`--rm`); the built packages stay in the Docker volumes.
+
+### Opening more terminals
+
+Most steps below need several terminals (sensors or rosbag in one, SLAM in another, RViz in a third). Open each extra terminal on the **host** and run:
+
+```bash
+./slam_deployment/attach.sh
+```
+
+This runs `docker exec -it slam_deployment bash`. Every container shell already sources ROS 2 and, once it is built, the workspace (`/root/ws/install/setup.bash`). Running `start.sh` again while the container is up does the same thing.
+
+### Alternative: VS Code Dev Container
+
+The repository also ships a Dev Container definition under `slam_deployment/.devcontainer/`.
 
 1. Install the **Dev Containers** extension in VS Code.
 2. Open the `slam_deployment` folder in VS Code.
 3. Run **Dev Containers: Reopen in Container** from the command palette.
 
->VS Code builds the image, mounts the workspace at `/root/ws/src`, and runs the initial `colcon build` automatically via the container's `postCreateCommand`.
+>VS Code builds the image, mounts the workspace at `/root/ws/src` and `~/rosbags` at `/root/bags`, and runs the initial `colcon build` automatically via the container's `postCreateCommand`.
 
-### Option B : Plain Docker CLI
+---
+## 4. Build the SLAM packages
 
-Allow the container to open GUI windows (RViz), then start it with the source folder mounted:
-
-```bash
-# from the repo root
-xhost +local:            # allow local containers to use the X server
-
-cd slam_deployment
-docker run -it --rm \
-  --name slam_deployment \
-  --net=host \
-  --env DISPLAY=$DISPLAY \
-  --env QT_X11_NO_MITSHM=1 \
-  --volume /tmp/.X11-unix:/tmp/.X11-unix \
-  --volume "$PWD":/root/ws/src \
-  --volume "$HOME/rosbags":/root/bags \
-  slam-tutorial
-```
-
-Then, **inside the container**, build the workspace once:
+Inside the container, build the whole workspace once:
 
 ```bash
 cd /root/ws
-source /opt/ros/humble/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-> Add `--gpus all` to the `docker run` command if you have the NVIDIA Container
-> Toolkit installed and want GPU access.
-> **Container naming:** `--name slam_deployment` gives the container a stable name,
-> so you can always attach with `docker exec -it slam_deployment /bin/bash` instead of
-> looking up a random name. Do **not** add `--hostname` together with `--net=host`:
-> the custom hostname is not in the container's `/etc/hosts`, which breaks ROS 2
-> (DDS) discovery. See [Troubleshooting](#troubleshooting).
+To (re)build just one package after editing it, use `--packages-select`, then re-source:
 
-## Providing a rosbag
+```bash
+colcon build --symlink-install --packages-select fast_limo
+source /root/ws/install/setup.bash
+```
 
-Every pipeline below needs recorded data. A bag path (the `bag_folder:=` argument, or the bag you play by hand for Fast-LIMO) is a path **inside the container**, but your bags normally live on the host. You do **not** need to copy them into `slam_deployment/`, instead **bind-mount** your host bag folder into the container, exactly like the source code is mounted. The bag stays on the host and simply appears at a container path.
+> Terminals opened **after** a build source the workspace automatically. Terminals that were already open need `source /root/ws/install/setup.bash`.
 
-Both entry points already mount the host's `~/rosbags` folder to `/root/bags` inside the container. So a bag at `~/rosbags/my_dataset` on the host is reachable as `/root/bags/my_dataset`.
+---
+## 5. Launch the sensors
 
-> Edit the source path (`~/rosbags`) in either place if your bags live elsewhere. The mounted folder must exist on the host before the container starts, otherwise the bind mount fails or creates an empty directory. As an alternative, anything under `slam_deployment/data/` on the host also appears at `/root/ws/src/data/` inside the container (already git-ignored), but a dedicated mount keeps large bags out of the workspace.
+Every SLAM package needs LiDAR and/or camera data plus IMU data. Either bring up the real sensors, or play the tutorial rosbag.
 
-> **Building a single package.** The whole workspace is built by `colcon build --symlink-install` in `/root/ws` (the Dev Container does this automatically). To (re)build just one algorithm, use `--packages-select`, e.g. `colcon build --symlink-install --packages-select fast_lio`, then re-source `source /root/ws/install/setup.bash`.
+### Option A: Live sensors
 
-## Running Fast-LIMO
+Start your sensor drivers, on the host or inside the container, so they publish the LiDAR, IMU and camera topics. Then check from a container terminal that the data arrives:
+
+```bash
+ros2 topic list
+ros2 topic hz /ouster/points
+```
+
+Each SLAM package subscribes to fixed topic names from its config file (see [Run a SLAM package](#6-run-a-slam-package)); edit those to match your sensors.
+
+### Option B: Play a rosbag
+
+**Download the rosbag here:** [Example Rosbags](https://saxion.data.surf.nl/s/TiMtHpmo25H24LT)
+
+The container plays both rosbag formats, **SQLite** (`.db3`) and **MCAP** (`.mcap`); `ros2 bag play` detects the format from the bag's `metadata.yaml`.
+
+1. Unpack the downloaded bag folder into `~/rosbags` on the **host** (or the folder you pass as `BAG_DIR` to `start.sh`). It then appears inside the container under `/root/bags/<bag_folder>`.
+
+2. Start the SLAM package first (see [Run a SLAM package](#6-run-a-slam-package)).
+
+3. In another container terminal (`./slam_deployment/attach.sh`), go into the bag folder and play it (<kbd>Tab</kbd> completes the long folder name):
+
+   ```bash
+   cd /root/bags/<bag_folder>
+   ros2 bag play . --clock --qos-profile-overrides-path qos/play_overrides.yaml
+   ```
+
+   `.` is the bag folder itself (the one with `metadata.yaml`), so the same command works for `.db3` and `.mcap` bags. Keep `--clock`: the SLAM nodes run on the bag's time (`use_sim_time`).
+
+> **Note:** always launch the SLAM algorithm **first** and start the bag **after** it, otherwise the algorithm misses the start of the recording, which it needs to initialise.
+
+> If you see `Ignoring a topic '/ublox_rover_node/navpvt', reason: package 'ublox_msgs' not found`, your image predates the GNSS message packages (`ublox_msgs`, `nmea_msgs`, `rtcm_msgs`). Rebuild it with `./slam_deployment/build_docker.sh` and restart the container.
+
+> The tutorial bag was recorded with the Zenoh middleware. Its `qos/play_overrides.yaml` file makes the played topics visible to normal ROS 2 nodes; without it only `/tf` shows up. For a bag without that file, drop the `--qos-profile-overrides-path` option.
+
+### Zenoh-recorded rosbags (rmw_zenoh)
+
+Instead of the QoS override file, you can play the bag on the same middleware it was recorded with. Then **every** ROS 2 process (the SLAM node, RViz and `ros2 bag play`) must use Zenoh and talk through a running Zenoh router.
+
+In **every** container terminal, select the Zenoh middleware:
+
+```bash
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+```
+
+In **one** of those terminals, start the Zenoh router and leave it running:
+
+```bash
+ros2 run rmw_zenoh_cpp rmw_zenohd
+```
+
+Then, in the other terminals, start the SLAM package and play the bag (without the override file) as usual.
+
+> `RMW_IMPLEMENTATION` only affects the shell it is exported in, so set it in **every** terminal. Mixing a Zenoh terminal with a Fast DDS terminal does not work: they cannot see each other.
+
+---
+
+## 6. Run a SLAM package
+
+All commands below run **inside the container**, with the workspace built (step 4). Use one terminal for the SLAM package and another for the sensors or the rosbag (step 5). Start the SLAM package **first**, then the data, so the beginning of the recording isn't missed.
+
+### Fast-LIMO
 
 > **Upstream project:** [fetty31/fast_LIMO](https://github.com/fetty31/fast_LIMO) algorithm details, full parameter reference and datasets.
 
-The steps below are run **inside the container**, with the workspace already built and sourced (`source /root/ws/install/setup.bash`).
-
-#### Launch
+Package `fast_limo`. The default config `fast_LIMO/config/params.yaml` already matches the tutorial rosbag: it subscribes to `/ouster/points` and `/ouster/imu` with `sensor_type: 0` (Ouster).
 
 ```bash
-# without RViz
-ros2 launch fast_limo fast_limo.launch.py
-
-# with RViz visualization
-ros2 launch fast_limo fast_limo.launch.py rviz:=True
-```
-
-#### Playing a rosbag
-
-Fast-LIMO relies heavily on point-cloud and IMU timestamps, so play recorded data with simulated time and the clock published:
-
-```bash
-# container terminal 1 : the SLAM node
+# terminal 1 : the SLAM node (+ RViz)
 ros2 launch fast_limo fast_limo.launch.py rviz:=True
 
-# host terminal  : the rosbag
-ros2 bag play <your_bag> --clock
+# terminal 2 : the rosbag (LiDAR + IMU are all Fast-LIMO needs)
+cd /root/bags/<bag_folder>
+ros2 bag play . --clock --qos-profile-overrides-path qos/play_overrides.yaml \
+  --topics /ouster/points /ouster/imu
 ```
 
-Set `use_sim_time` accordingly when replaying recorded data.
+> **Calibration:** Fast-LIMO estimates the IMU biases and gravity during the first 3 s (`calibration.time`), so the sensor must stand still at the start of the data. For other sensors, set `topics.input`, `sensor_type` and the LiDAR/IMU `extrinsics` in `params.yaml`, then rebuild (`colcon build --symlink-install --packages-select fast_limo`).
 
-> **Tip:** to open another shell in the running container, use
-> `docker exec -it slam_deployment bash` and re-source the workspace with
-> `source /root/ws/install/setup.bash`.
-
-#### Host container communication
-
->The container runs with `--net=host`, so it shares the host's network stack. ROS 2 has no central master, nodes discover each other automatically over DDS, so the container and the host behave like two terminals on the same machine. This means you can play the rosbag **either place**:
-
-Two things must match on both sides for discovery to work:
-
-- **`ROS_DOMAIN_ID`** : nodes only find peers on the same domain (default `0`).
-- **`ROS_LOCALHOST_ONLY`** : keep it consistent; unset it on both sides if discovery misbehaves.
-
-## Running FAST-LIO
+### FAST-LIO
 
 > **Upstream project:** [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO) algorithm details, full parameter reference and datasets.
 
@@ -254,7 +300,7 @@ ros2 launch fast_lio mapping_bag.launch.py \
 
 > `config_file` defaults to `ouster128.yaml`; `rviz:=false` disables the RViz window.
 
-## Running LeGO-LOAM
+### LeGO-LOAM
 
 > **Upstream project:** [RobustFieldAutonomyLab/LeGO-LOAM](https://github.com/RobustFieldAutonomyLab/LeGO-LOAM) algorithm details and the original paper.
 
@@ -266,7 +312,7 @@ ros2 launch lego_loam_sr run.launch.py bag_folder:=/root/bags/<your_bag>
 
 > `config_file` defaults to `loam_config_corridor.yaml` (also available: `loam_config.yaml`), override with `config_file:=<path>`. Play **only** the LiDAR topic from your bag, replaying the bag's `/tf` interferes with LeGO-LOAM's own transforms.
 
-## Running VINS-Fusion
+### VINS-Fusion
 
 > **Upstream project:** [HKUST-Aerial-Robotics/VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion) algorithm details, supported sensors and datasets.
 
@@ -286,12 +332,25 @@ ros2 launch vins vins_lc_rviz.launch.py \
 
 > To run the estimator by itself without a bag, use the node directly : `ros2 run vins vins_node <path_to_config.yaml>`. GPU acceleration can be toggled inside the chosen config file.
 
+---
+
 ## Troubleshooting
 
 - **`packages not found` :** The workspace has not been built or sourced. Run `colcon build --symlink-install` in `/root/ws`, then `source /root/ws/install/setup.bash`.
 
 - **Empty submodule folders :** The submodules were not initialised on the host. Run `git submodule update --init --recursive` in the repository root and restart the container.
 
-- **`ros2 topic list` is empty / nodes don't discover each other :** First restart the discovery daemon, which caches results and can go stale after a network change: `ros2 daemon stop` (it restarts on the next command). Then confirm `ROS_DOMAIN_ID` matches on both sides and the container runs with `--net=host`.
+- **Only `/tf` appears while the bag plays :** The bag was played without `--qos-profile-overrides-path qos/play_overrides.yaml`. See [Option B: Play a rosbag](#option-b-play-a-rosbag).
 
-- **RViz / GUI window does not appear :** Run `xhost +local:` on the host before starting the container, and make sure `DISPLAY` is forwarded.
+- **`can't open '/qos/play_overrides.yaml'` :** The path starts with `/` (or uses an unset variable such as `$BAG`), so it points to the container root. Run the command from inside the bag folder with the relative path `qos/play_overrides.yaml`.
+
+- **`ros2 topic list` is empty / nodes don't discover each other :** First restart the discovery daemon, which caches results and can go stale after a network change: `ros2 daemon stop` (it restarts on the next command). Then confirm `ROS_DOMAIN_ID` and `RMW_IMPLEMENTATION` match in every terminal and the container runs with `--net=host`. Do **not** add `--hostname` to the `docker run` command: with `--net=host` the custom hostname is missing from `/etc/hosts`, which breaks discovery.
+
+- **RViz / GUI window does not appear :** Run `xhost +local:` on the host (`start.sh` does this) and make sure `DISPLAY` is forwarded.
+
+- **Start from a clean build / `rm: cannot remove 'build': Device or resource busy` :** `build/`, `install/` and `log/` are Docker volumes mounted by `start.sh`, so the folders themselves can't be deleted from inside the container. Delete their **contents** instead, then rebuild:
+
+  ```bash
+  cd /root/ws && rm -rf build/* install/* log/*
+  colcon build --symlink-install
+  ```
